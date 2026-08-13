@@ -371,7 +371,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 ml-auto">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-slate-300 font-mono">AutoHeal Neural Engine (70B)</span>
@@ -385,11 +385,11 @@ export default function Dashboard() {
               onClick={() => setShowSessionModal(true)}
               className="ml-1 text-[10px] text-indigo-400 hover:text-indigo-300 underline font-semibold"
             >
-              Switch Session
+              Switch
             </button>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-700 shadow-lg shadow-purple-500/10">
             <button
               onClick={() => setRole('tester')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -406,7 +406,7 @@ export default function Dashboard() {
             >
               {role === 'admin' ? (
                 <>
-                  <Unlock className="w-3 h-3" /> Admin Unlocked
+                  <Unlock className="w-3 h-3 text-purple-200" /> Admin Unlocked
                 </>
               ) : (
                 <>
