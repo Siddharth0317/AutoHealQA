@@ -13,7 +13,7 @@ class SupabaseServiceManager:
 
     def __init__(self):
         self.url = settings.SUPABASE_URL
-        self.key = settings.SUPABASE_ANON_KEY
+        self.key = settings.SUPABASE_SERVICE_ROLE_KEY or settings.SUPABASE_ANON_KEY
         self.is_mock = not self.url or "placeholder" in self.url or not self.key or "placeholder" in self.key
         self.client = None
 

@@ -1,8 +1,15 @@
 import os
+import sys
 import time
 import uuid
 import logging
 import asyncio
+
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        pass
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from playwright.async_api import async_playwright, Page, BrowserContext, TimeoutError as PlaywrightTimeoutError
