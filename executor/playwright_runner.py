@@ -165,6 +165,7 @@ class PlaywrightTestExecutor:
             browser_engine = getattr(p, browser_type, p.chromium)
             browser = await browser_engine.launch(
                 headless=self.headless,
+                slow_mo=500 if not self.headless else 0,
                 args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"] if browser_type == "chromium" else []
             )
             

@@ -35,9 +35,10 @@ export default function Dashboard() {
   const [passcodeInput, setPasscodeInput] = useState<string>('');
   const [passcodeError, setPasscodeError] = useState<string | null>(null);
 
-  // Multi-Browser & Device Controls
+  // Multi-Browser & Device & Execution Mode Controls
   const [browserType, setBrowserType] = useState<'chromium' | 'firefox' | 'webkit'>('chromium');
   const [devicePreset, setDevicePreset] = useState<'Desktop' | 'iPhone 14' | 'Pixel 7'>('Desktop');
+  const [isHeadless, setIsHeadless] = useState<boolean>(false);
 
   // State for Requirement Generator
   const [requirement, setRequirement] = useState<string>(
@@ -189,7 +190,7 @@ export default function Dashboard() {
         body: JSON.stringify({
           test_suite: generatedSuite,
           target_url_override: targetUrl,
-          headless: true,
+          headless: isHeadless,
           browser_type: browserType,
           device_preset: devicePreset
         })
@@ -502,7 +503,7 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-2 gap-4">
+              <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-400 flex items-center gap-1">
                     <Globe className="w-3.5 h-3.5 text-cyan-400" /> Browser Engine
@@ -530,6 +531,20 @@ export default function Dashboard() {
                     <option value="Desktop">Desktop (1280x720)</option>
                     <option value="iPhone 14">iPhone 14 (390x844)</option>
                     <option value="Pixel 7">Pixel 7 (412x915)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                    <Activity className="w-3.5 h-3.5 text-emerald-400" /> Execution Mode
+                  </label>
+                  <select
+                    value={isHeadless ? "headless" : "headed"}
+                    onChange={(e: any) => setIsHeadless(e.target.value === "headless")}
+                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
+                  >
+                    <option value="headed">👀 Open Live Browser Window</option>
+                    <option value="headless">⚡ Background Headless Mode</option>
                   </select>
                 </div>
               </div>
