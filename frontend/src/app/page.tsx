@@ -357,30 +357,30 @@ export default function Dashboard() {
   return (
     <main className="space-y-6">
       {/* Header Bar */}
-      <header className="glass-panel p-6 flex flex-wrap items-center justify-between gap-4">
+      <header className="glass-panel p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-lg shadow-indigo-500/30">
+          <div className="p-3 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-lg shadow-indigo-500/30 flex-shrink-0">
             <Cpu className="w-7 h-7 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-white">AutoHealQA</h1>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">AutoHealQA</h1>
               <span className="badge badge-healed">v1.0</span>
             </div>
-            <p className="text-sm text-slate-400">Autonomous QA Engine • Multi-Browser • Visual Regression • Self-Healing AI</p>
+            <p className="text-xs sm:text-sm text-slate-400">Autonomous QA Engine • Multi-Browser • Visual Regression • Self-Healing AI</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 ml-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-800/80 pt-3 md:pt-0">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-slate-300 font-mono">AutoHeal Neural Engine (70B)</span>
+            <span className="text-slate-300 font-mono text-[11px] sm:text-xs">AutoHeal Neural (70B)</span>
           </div>
 
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs">
             <Key className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="text-slate-400 font-mono">Session ID:</span>
-            <code className="text-indigo-300 font-mono font-semibold">{userId}</code>
+            <span className="text-slate-400 font-mono hidden sm:inline">Session ID:</span>
+            <code className="text-indigo-300 font-mono font-semibold text-[11px] sm:text-xs">{userId}</code>
             <button
               onClick={() => setShowSessionModal(true)}
               className="ml-1 text-[10px] text-indigo-400 hover:text-indigo-300 underline font-semibold"
@@ -392,7 +392,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-700 shadow-lg shadow-purple-500/10">
             <button
               onClick={() => setRole('tester')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 role === 'tester' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -400,13 +400,13 @@ export default function Dashboard() {
             </button>
             <button
               onClick={handleSwitchAdminClick}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
                 role === 'admin' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
               {role === 'admin' ? (
                 <>
-                  <Unlock className="w-3 h-3 text-purple-200" /> Admin Unlocked
+                  <Unlock className="w-3 h-3 text-purple-200" /> Admin
                 </>
               ) : (
                 <>
@@ -419,10 +419,10 @@ export default function Dashboard() {
       </header>
 
       {/* Main Navigation Tabs */}
-      <nav className="glass-panel p-2 flex flex-wrap gap-2">
+      <nav className="glass-panel p-2 flex flex-nowrap md:flex-wrap overflow-x-auto gap-2 max-w-full">
         <button
           onClick={() => setActiveTab('generate')}
-          className={`tab-btn flex items-center gap-2 ${activeTab === 'generate' ? 'active' : ''}`}
+          className={`tab-btn flex-shrink-0 flex items-center gap-2 ${activeTab === 'generate' ? 'active' : ''}`}
         >
           <Sparkles className="w-4 h-4" />
           1. Requirements Analyzer
@@ -430,7 +430,7 @@ export default function Dashboard() {
 
         <button
           onClick={() => setActiveTab('execute')}
-          className={`tab-btn flex items-center gap-2 ${activeTab === 'execute' ? 'active' : ''}`}
+          className={`tab-btn flex-shrink-0 flex items-center gap-2 ${activeTab === 'execute' ? 'active' : ''}`}
         >
           <Play className="w-4 h-4" />
           2. Live Test Executor
@@ -441,7 +441,7 @@ export default function Dashboard() {
             setActiveTab('history');
             fetchHistory();
           }}
-          className={`tab-btn flex items-center gap-2 ${activeTab === 'history' ? 'active' : ''}`}
+          className={`tab-btn flex-shrink-0 flex items-center gap-2 ${activeTab === 'history' ? 'active' : ''}`}
         >
           <History className="w-4 h-4 text-blue-400" />
           3. Activity & Execution History
@@ -449,7 +449,7 @@ export default function Dashboard() {
 
         <button
           onClick={() => setActiveTab('self-healing')}
-          className={`tab-btn flex items-center gap-2 ${activeTab === 'self-healing' ? 'active' : ''}`}
+          className={`tab-btn flex-shrink-0 flex items-center gap-2 ${activeTab === 'self-healing' ? 'active' : ''}`}
         >
           <Wrench className="w-4 h-4 text-amber-400" />
           4. Self-Healing Audit Logs
@@ -463,7 +463,7 @@ export default function Dashboard() {
               setActiveTab('admin');
             }
           }}
-          className={`tab-btn flex items-center gap-2 ${activeTab === 'admin' ? 'active' : ''}`}
+          className={`tab-btn flex-shrink-0 flex items-center gap-2 ${activeTab === 'admin' ? 'active' : ''}`}
         >
           <Activity className="w-4 h-4 text-purple-400" />
           5. Admin Telemetry {role !== 'admin' && <Lock className="w-3 h-3 text-slate-500" />}
@@ -623,7 +623,7 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-3 gap-3">
+              <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-400 flex items-center gap-1">
                     <Globe className="w-3.5 h-3.5 text-cyan-400" /> Browser Engine
@@ -690,13 +690,13 @@ export default function Dashboard() {
           </div>
 
           <div className="glass-panel p-6 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-purple-400" />
-                <h2 className="text-lg font-semibold text-white">Generated BDD Scenario & Test Steps</h2>
+                <h2 className="text-base sm:text-lg font-semibold text-white">Generated BDD Scenario & Test Steps</h2>
               </div>
               {generatedSuite && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={handleDownloadPdfReport}
                     className="px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-xs text-indigo-200 flex items-center gap-1 border border-indigo-500/40 font-semibold"
@@ -954,15 +954,15 @@ export default function Dashboard() {
                 return (
                   <div key={run.id} className="rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all overflow-hidden">
                     {/* SINGLE UNIFIED BAR FOR PROMPT EXECUTION */}
-                    <div className="p-4 flex flex-wrap items-center justify-between gap-4 bg-slate-900/60">
-                      <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-                        <span className={`badge ${run.status === 'PASSED' ? 'badge-passed' : 'badge-failed'}`}>
+                    <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60">
+                      <div className="flex items-start sm:items-center gap-3 flex-1">
+                        <span className={`badge flex-shrink-0 ${run.status === 'PASSED' ? 'badge-passed' : 'badge-failed'}`}>
                           {run.status === 'PASSED' ? '✅ PASSED' : '❌ FAILED'}
                         </span>
                         <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <code className="text-xs font-mono text-indigo-400 font-bold">{run.id}</code>
-                            <span className="text-xs text-slate-400 font-medium">({run.target_url || 'https://example.com'})</span>
+                            <span className="text-xs text-slate-400 font-medium truncate max-w-[200px]">({run.target_url || 'https://example.com'})</span>
                           </div>
                           <p className="text-xs text-slate-300 font-mono line-clamp-1">
                             Prompt: {run.requirement_prompt || run.test_suite?.user_story || 'Verified user story execution'}
@@ -970,15 +970,15 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 text-xs text-slate-400">
-                        <span className="font-mono text-amber-400">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                        <span className="font-mono text-amber-400 font-semibold">
                           {run.healed_steps_count || run.self_healing_events?.length || 0} Healed
                         </span>
                         <span className="font-mono text-slate-400">
                           {run.duration_ms ? (run.duration_ms / 1000).toFixed(1) + 's' : '10s'}
                         </span>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <a
                             href={`${API_BASE}/test-runs/${run.id}/report`}
                             target="_blank"
