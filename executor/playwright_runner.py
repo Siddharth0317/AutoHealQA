@@ -81,6 +81,52 @@ class PlaywrightTestExecutor:
         browser_type: str = "chromium",
         device_preset: str = "Desktop"
     ) -> TestRunResult:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if sys.platform == "win32" and loop is not None and not isinstance(loop, getattr(asyncio, "ProactorEventLoop", type(None))):
+            return await asyncio.to_thread(
+                self._run_in_proactor_thread,
+                test_suite,
+                run_id,
+                base_url_override,
+                browser_type,
+                device_preset
+            )
+
+        return await self._execute_internal(
+            test_suite, run_id, base_url_override, browser_type, device_preset
+        )
+
+    def _run_in_proactor_thread(
+        self,
+        test_suite: TestSuiteResponse,
+        run_id: Optional[str],
+        base_url_override: Optional[str],
+        browser_type: str,
+        device_preset: str
+    ) -> TestRunResult:
+        new_loop = asyncio.ProactorEventLoop()
+        asyncio.set_event_loop(new_loop)
+        try:
+            return new_loop.run_until_complete(
+                self._execute_internal(
+                    test_suite, run_id, base_url_override, browser_type, device_preset
+                )
+            )
+        finally:
+            new_loop.close()
+
+    async def _execute_internal(
+        self,
+        test_suite: TestSuiteResponse,
+        run_id: Optional[str] = None,
+        base_url_override: Optional[str] = None,
+        browser_type: str = "chromium",
+        device_preset: str = "Desktop"
+    ) -> TestRunResult:
         """
         Executes all scenarios and test steps in a test suite across Chromium, Firefox, WebKit,
         or Mobile device viewports, generating logs, screenshots, and auto-healing broken selectors.

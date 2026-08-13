@@ -231,6 +231,30 @@ export default function Dashboard() {
     }
   };
 
+  const handleDownloadPdfReport = async () => {
+    if (!generatedSuite) return;
+    try {
+      const res = await fetch(`${API_BASE}/export-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          test_suite: generatedSuite,
+          latest_run: latestRun
+        })
+      });
+      if (res.ok) {
+        const htmlText = await res.text();
+        const win = window.open('', '_blank');
+        if (win) {
+          win.document.write(htmlText);
+          win.document.close();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to generate PDF report:", err);
+    }
+  };
+
   const handleExportZip = async () => {
     if (!generatedSuite) return;
     try {
@@ -539,22 +563,16 @@ export default function Dashboard() {
               {generatedSuite && (
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleExportZip}
+                    onClick={handleDownloadPdfReport}
                     className="px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-xs text-indigo-200 flex items-center gap-1 border border-indigo-500/40 font-semibold"
                   >
-                    <Download className="w-3.5 h-3.5 text-indigo-300" /> Download Full Zip
+                    <Download className="w-3.5 h-3.5 text-indigo-300" /> Download PDF Report
                   </button>
                   <button
                     onClick={() => handleExportCode('python')}
                     className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 flex items-center gap-1 border border-slate-700"
                   >
                     <Code className="w-3.5 h-3.5 text-emerald-400" /> Pytest .py
-                  </button>
-                  <button
-                    onClick={() => handleExportCode('gherkin')}
-                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 flex items-center gap-1 border border-slate-700"
-                  >
-                    <Download className="w-3.5 h-3.5 text-cyan-400" /> Gherkin .feature
                   </button>
                   <button
                     onClick={handleExecute}
