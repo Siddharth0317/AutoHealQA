@@ -28,6 +28,7 @@ jobs:
 
       - name: Run Pytest Test Suite
         env:
+          PYTHONPATH: .
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || 'mock_groq_key' }}
         run: |
           pytest -v tests/

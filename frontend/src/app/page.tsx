@@ -140,7 +140,7 @@ export default function Dashboard() {
 
   const fetchAdminMetrics = async () => {
     try {
-      const headers: Record<string, str> = { 'X-User-Role': 'admin' };
+      const headers: Record<string, string> = { 'X-User-Role': 'admin' };
       if (adminPasscode) {
         headers['X-Admin-Passcode'] = adminPasscode;
       }
