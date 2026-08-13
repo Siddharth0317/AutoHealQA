@@ -1,36 +1,61 @@
 import logging
-from typing import Dict, Any
-from fastapi import APIRouter, Depends, status
+from typing import Dict, Any, Optional
+from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import Response
 from agents.code_exporter import code_exporter
-from backend.app.models.schemas import CodeExportRequest
-from backend.app.core.auth import get_current_user, UserContext
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/export-code", status_code=status.HTTP_200_OK)
-async def export_code(
-    payload: CodeExportRequest,
-    current_user: UserContext = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Exports a structured BDD test suite into a standalone Python pytest script
-    or a standard Cucumber .feature file.
-    """
-    if payload.export_format == "gherkin":
-        content = code_exporter.export_to_gherkin_feature(payload.test_suite)
-        filename = f"{payload.test_suite.id}.feature"
-        mime_type = "text/plain"
-    else:
-        content = code_exporter.export_to_python_pytest(payload.test_suite)
-        filename = f"{payload.test_suite.id}.py"
-        mime_type = "text/x-python"
+class CodeExportRequest(BaseModel):
+    test_suite: Dict[str, Any] = Field(..., description="Structured test suite JSON")
+    export_format: str = Field("python", description="Format: python | gherkin | zip")
+    latest_run: Optional[Dict[str, Any]] = None
 
-    return {
-        "suite_id": payload.test_suite.id,
-        "format": payload.export_format,
-        "filename": filename,
-        "mime_type": mime_type,
-        "exported_code": content
-    }
+
+class CodeExportResponse(BaseModel):
+    export_format: str
+    exported_code: str
+    filename: str
+
+
+@router.post("/export-code", response_model=CodeExportResponse, status_code=status.HTTP_200_OK)
+async def export_code(payload: CodeExportRequest) -> CodeExportResponse:
+    """
+    Exports a test suite to runnable Pytest code or Cucumber Gherkin feature files.
+    """
+    suite_id = payload.test_suite.get("id", "suite")
+
+    if payload.export_format.lower() == "gherkin":
+        code = code_exporter.to_gherkin_feature(payload.test_suite)
+        return CodeExportResponse(
+            export_format="gherkin",
+            exported_code=code,
+            filename=f"{suite_id}.feature"
+        )
+    else:
+        code = code_exporter.to_pytest_script(payload.test_suite)
+        return CodeExportResponse(
+            export_format="python",
+            exported_code=code,
+            filename=f"{suite_id}.py"
+        )
+
+
+@router.post("/export-zip", status_code=status.HTTP_200_OK)
+async def export_zip(payload: CodeExportRequest):
+    """
+    Generates and streams a full project .zip bundle containing python scripts, gherkin features, html reports, and README.
+    """
+    suite_id = payload.test_suite.get("id", "suite_001")
+    zip_bytes = code_exporter.create_full_suite_zip(payload.test_suite, payload.latest_run)
+
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=AutoHealQA_Suite_{suite_id}.zip"
+        }
+    )

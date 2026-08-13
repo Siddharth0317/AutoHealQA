@@ -231,6 +231,32 @@ export default function Dashboard() {
     }
   };
 
+  const handleExportZip = async () => {
+    if (!generatedSuite) return;
+    try {
+      const res = await fetch(`${API_BASE}/export-zip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          test_suite: generatedSuite,
+          latest_run: latestRun
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `AutoHealQA_Suite_${generatedSuite.id || 'export'}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    } catch (err) {
+      console.error("Failed to export zip bundle:", err);
+    }
+  };
+
   const handleTestJiraWebhook = async () => {
     setIsWebhookTesting(true);
     try {
@@ -267,7 +293,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight text-white">AutoHealQA</h1>
-              <span className="badge badge-healed">v1.0 Enterprise</span>
+              <span className="badge badge-healed">v1.0</span>
             </div>
             <p className="text-sm text-slate-400">Autonomous QA Engine • Multi-Browser • Visual Regression • Jira/GitHub Webhooks</p>
           </div>
@@ -512,6 +538,12 @@ export default function Dashboard() {
               </div>
               {generatedSuite && (
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExportZip}
+                    className="px-2.5 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-xs text-indigo-200 flex items-center gap-1 border border-indigo-500/40 font-semibold"
+                  >
+                    <Download className="w-3.5 h-3.5 text-indigo-300" /> Download Full Zip
+                  </button>
                   <button
                     onClick={() => handleExportCode('python')}
                     className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 flex items-center gap-1 border border-slate-700"
