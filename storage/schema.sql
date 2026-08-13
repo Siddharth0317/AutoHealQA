@@ -22,9 +22,14 @@ CREATE TABLE IF NOT EXISTS public.test_suites (
 -- 3. Test Execution Runs
 CREATE TABLE IF NOT EXISTS public.test_runs (
     id TEXT PRIMARY KEY,
-    suite_id TEXT REFERENCES public.test_suites(id) ON DELETE CASCADE,
+    suite_id TEXT,
     user_id TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('passed', 'failed', 'healed', 'running')),
+    status TEXT NOT NULL,
+    target_url TEXT,
+    requirement_prompt TEXT,
+    engine TEXT,
+    device TEXT,
+    execution_mode TEXT,
     duration_ms INTEGER DEFAULT 0,
     total_steps INTEGER DEFAULT 0,
     steps_passed INTEGER DEFAULT 0,

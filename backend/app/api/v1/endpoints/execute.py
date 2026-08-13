@@ -31,8 +31,16 @@ async def execute_tests(
             device_preset=payload.device_preset
         )
 
+        # Enrich run data with requirement prompt and execution metadata
+        run_data = run_result.model_dump()
+        run_data["target_url"] = payload.target_url_override or payload.test_suite.get("target_url") or "https://example.com"
+        run_data["requirement_prompt"] = payload.test_suite.get("user_story") or payload.test_suite.get("title") or "Verified user story execution"
+        run_data["browser_type"] = payload.browser_type
+        run_data["device_preset"] = payload.device_preset
+        run_data["execution_mode"] = "Background Headless Mode" if payload.headless else "👀 Open Live Browser Window"
+
         # Save run result in database
-        await supabase_service.save_test_run(run_result.model_dump(), user_id=current_user.user_id)
+        await supabase_service.save_test_run(run_data, user_id=current_user.user_id)
 
         # Record system metrics
         metrics_collector.record_execution(

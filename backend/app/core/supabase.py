@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import logging
 from typing import Dict, Any, List, Optional
 from backend.app.config import settings
@@ -41,7 +42,7 @@ class SupabaseServiceManager:
             "summary": suite_data.get("summary"),
             "target_url": suite_data.get("target_url"),
             "bdd_json": suite_data,
-            "created_at": suite_data.get("created_at") or "2026-08-13T13:00:00Z"
+            "created_at": suite_data.get("created_at") or datetime.now(timezone.utc).isoformat()
         }
         self._test_suites_db[suite_id] = record
 
@@ -54,12 +55,20 @@ class SupabaseServiceManager:
         return record
 
     async def save_test_run(self, run_result: Dict[str, Any], user_id: str = "guest_user") -> Dict[str, Any]:
-        run_id = run_result.get("run_id")
+        run_id = run_result.get("run_id") or run_result.get("id")
+        raw_status = run_result.get("status", "passed")
+        formatted_status = raw_status.upper() if isinstance(raw_status, str) else "PASSED"
+
         record = {
             "id": run_id,
             "suite_id": run_result.get("suite_id"),
             "user_id": user_id,
-            "status": run_result.get("status"),
+            "status": formatted_status,
+            "target_url": run_result.get("target_url") or "https://example.com",
+            "requirement_prompt": run_result.get("requirement_prompt") or "Natural language user story execution",
+            "engine": run_result.get("browser_type") or run_result.get("engine") or "chromium",
+            "device": run_result.get("device_preset") or run_result.get("device") or "Desktop",
+            "execution_mode": run_result.get("execution_mode") or "👀 Open Live Browser Window",
             "duration_ms": run_result.get("duration_ms"),
             "total_steps": run_result.get("total_steps"),
             "steps_passed": run_result.get("steps_passed"),
@@ -68,7 +77,7 @@ class SupabaseServiceManager:
             "step_logs": run_result.get("step_logs"),
             "screenshots": run_result.get("screenshots"),
             "trace_url": run_result.get("trace_url"),
-            "created_at": "2026-08-13T13:00:00Z"
+            "created_at": datetime.now(timezone.utc).isoformat()
         }
         self._test_runs_db[run_id] = record
 
@@ -81,7 +90,7 @@ class SupabaseServiceManager:
                 "healed_selector": event.get("healed_selector"),
                 "reasoning": event.get("reasoning"),
                 "confidence_score": event.get("confidence_score"),
-                "timestamp": event.get("timestamp")
+                "timestamp": event.get("timestamp") or datetime.now(timezone.utc).isoformat()
             }
             self._self_healing_db.append(heal_entry)
 
@@ -89,9 +98,47 @@ class SupabaseServiceManager:
             try:
                 self.client.table("test_runs").insert(record).execute()
             except Exception as e:
-                logger.error(f"Error saving test run to Supabase: {e}")
+                logger.warning(f"Supabase primary insert notice: {e}. Retrying with core schema fields...")
+                try:
+                    core_record = {
+                        "id": record["id"],
+                        "suite_id": record.get("suite_id"),
+                        "user_id": record["user_id"],
+                        "status": record["status"].lower(),
+                        "duration_ms": record["duration_ms"],
+                        "total_steps": record["total_steps"],
+                        "steps_passed": record["steps_passed"],
+                        "steps_failed": record["steps_failed"],
+                        "steps_healed": record["steps_healed"],
+                        "step_logs": record["step_logs"],
+                        "screenshots": record["screenshots"],
+                        "trace_url": record["trace_url"],
+                        "created_at": record["created_at"]
+                    }
+                    self.client.table("test_runs").insert(core_record).execute()
+                except Exception as err2:
+                    logger.error(f"Error saving test run to Supabase: {err2}")
 
         return record
+
+    async def clear_history(self, user_id: Optional[str] = None) -> bool:
+        if user_id:
+            self._test_runs_db = {k: v for k, v in self._test_runs_db.items() if v.get("user_id") != user_id}
+        else:
+            self._test_runs_db.clear()
+            self._self_healing_db.clear()
+
+        if not self.is_mock and self.client:
+            try:
+                query = self.client.table("test_runs").delete()
+                if user_id:
+                    query = query.eq("user_id", user_id)
+                else:
+                    query = query.neq("id", "")
+                query.execute()
+            except Exception as e:
+                logger.error(f"Error clearing history from Supabase: {e}")
+        return True
 
     async def get_test_run_by_id(self, run_id: str) -> Optional[Dict[str, Any]]:
         if run_id in self._test_runs_db:
@@ -107,13 +154,19 @@ class SupabaseServiceManager:
 
         return None
 
-    async def get_run_history(self, limit: int = 20) -> List[Dict[str, Any]]:
+    async def get_run_history(self, limit: int = 20, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         history = list(self._test_runs_db.values())
-        history.sort(key=lambda x: x.get("id"), reverse=True)
+        if user_id:
+            history = [r for r in history if r.get("user_id") == user_id]
+
+        history.sort(key=lambda x: x.get("created_at", ""), reverse=True)
 
         if not self.is_mock and self.client:
             try:
-                res = self.client.table("test_runs").select("*").order("created_at", desc=True).limit(limit).execute()
+                query = self.client.table("test_runs").select("*")
+                if user_id:
+                    query = query.eq("user_id", user_id)
+                res = query.order("created_at", desc=True).limit(limit).execute()
                 if res.data:
                     return res.data
             except Exception as e:

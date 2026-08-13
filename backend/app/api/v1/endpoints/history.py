@@ -14,14 +14,28 @@ async def get_history(
     current_user: UserContext = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
-    Lists past test runs and self-healing events saved in Supabase / memory store.
+    Lists past test runs for the authenticated user (or all runs if admin).
     """
-    runs = await supabase_service.get_run_history(limit=limit)
+    target_user_id = None if current_user.role == "admin" else current_user.user_id
+    runs = await supabase_service.get_run_history(limit=limit, user_id=target_user_id)
     healed_logs = await supabase_service.get_self_healing_logs(limit=limit)
 
     return {
         "total_runs": len(runs),
         "user_role": current_user.role,
+        "user_id": current_user.user_id,
         "runs": runs,
         "recent_healed_logs": healed_logs
     }
+
+
+@router.delete("/history/clear", status_code=status.HTTP_200_OK)
+async def clear_history(
+    current_user: UserContext = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Clears historic runs for the current user (or all if admin).
+    """
+    target_user_id = None if current_user.role == "admin" else current_user.user_id
+    await supabase_service.clear_history(user_id=target_user_id)
+    return {"message": "Execution history successfully cleared.", "total_runs": 0}

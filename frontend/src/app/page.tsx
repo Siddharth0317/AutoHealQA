@@ -22,18 +22,35 @@ import {
   Code,
   Key,
   Unlock,
+  History,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
   X
 } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'generate' | 'execute' | 'self-healing' | 'webhooks' | 'admin'>('generate');
+  const [activeTab, setActiveTab] = useState<'generate' | 'execute' | 'history' | 'self-healing' | 'webhooks' | 'admin'>('generate');
   const [role, setRole] = useState<'tester' | 'admin'>('tester');
+  const [userId, setUserId] = useState<string>('guest_user');
   const [adminPasscode, setAdminPasscode] = useState<string>('');
   const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
   const [passcodeInput, setPasscodeInput] = useState<string>('');
   const [passcodeError, setPasscodeError] = useState<string | null>(null);
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
+  const [showSessionModal, setShowSessionModal] = useState<boolean>(false);
+  const [sessionInput, setSessionInput] = useState<string>('');
+
+  useEffect(() => {
+    let localUserId = localStorage.getItem('autoheal_user_id');
+    if (!localUserId) {
+      localUserId = 'user_' + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('autoheal_user_id', localUserId);
+    }
+    setUserId(localUserId);
+  }, []);
 
   // Multi-Browser & Device & Execution Mode Controls
   const [browserType, setBrowserType] = useState<'chromium' | 'firefox' | 'webkit'>('chromium');
@@ -80,7 +97,10 @@ export default function Dashboard() {
   const fetchHistory = async () => {
     try {
       const res = await fetch(`${API_BASE}/history`, {
-        headers: { 'X-User-Role': role }
+        headers: { 
+          'X-User-Role': role,
+          'X-User-Id': userId
+        }
       });
       if (res.ok) {
         const data = await res.json();
@@ -89,6 +109,33 @@ export default function Dashboard() {
     } catch (err) {
       console.warn("Could not fetch backend history.");
     }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/history/clear`, {
+        method: 'DELETE',
+        headers: { 
+          'X-User-Role': role,
+          'X-User-Id': userId
+        }
+      });
+      if (res.ok) {
+        setHistoryData({ runs: [], total_runs: 0 });
+      }
+    } catch (err) {
+      console.warn("Could not clear execution history.");
+    }
+  };
+
+  const handleLoadSession = (newId: string) => {
+    if (!newId.trim()) return;
+    const cleanId = newId.trim();
+    localStorage.setItem('autoheal_user_id', cleanId);
+    setUserId(cleanId);
+    setShowSessionModal(false);
+    setSessionInput('');
+    fetchHistory();
   };
 
   const fetchAdminMetrics = async () => {
@@ -128,7 +175,7 @@ export default function Dashboard() {
           fetchAdminMetrics();
         }
       } else {
-        setPasscodeError('Invalid Admin Passcode (Default: admin123)');
+        setPasscodeError('Invalid Admin Passcode');
       }
     } catch (err: any) {
       setPasscodeError('Could not verify passcode with server.');
@@ -320,7 +367,7 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold tracking-tight text-white">AutoHealQA</h1>
               <span className="badge badge-healed">v1.0</span>
             </div>
-            <p className="text-sm text-slate-400">Autonomous QA Engine • Multi-Browser • Visual Regression • Jira/GitHub Webhooks</p>
+            <p className="text-sm text-slate-400">Autonomous QA Engine • Multi-Browser • Visual Regression • Self-Healing AI</p>
           </div>
         </div>
 
@@ -328,6 +375,18 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-slate-300 font-mono">AutoHeal Neural Engine (70B)</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs">
+            <Key className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="text-slate-400 font-mono">Session ID:</span>
+            <code className="text-indigo-300 font-mono font-semibold">{userId}</code>
+            <button
+              onClick={() => setShowSessionModal(true)}
+              className="ml-1 text-[10px] text-indigo-400 hover:text-indigo-300 underline font-semibold"
+            >
+              Switch Session
+            </button>
           </div>
 
           <div className="flex items-center gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
@@ -378,19 +437,22 @@ export default function Dashboard() {
         </button>
 
         <button
+          onClick={() => {
+            setActiveTab('history');
+            fetchHistory();
+          }}
+          className={`tab-btn flex items-center gap-2 ${activeTab === 'history' ? 'active' : ''}`}
+        >
+          <History className="w-4 h-4 text-blue-400" />
+          3. Activity & Execution History
+        </button>
+
+        <button
           onClick={() => setActiveTab('self-healing')}
           className={`tab-btn flex items-center gap-2 ${activeTab === 'self-healing' ? 'active' : ''}`}
         >
           <Wrench className="w-4 h-4 text-amber-400" />
-          3. Self-Healing Audit Logs
-        </button>
-
-        <button
-          onClick={() => setActiveTab('webhooks')}
-          className={`tab-btn flex items-center gap-2 ${activeTab === 'webhooks' ? 'active' : ''}`}
-        >
-          <Webhook className="w-4 h-4 text-cyan-400" />
-          4. Jira / GitHub Webhooks
+          4. Self-Healing Audit Logs
         </button>
 
         <button
@@ -443,24 +505,82 @@ export default function Dashboard() {
                 value={passcodeInput}
                 onChange={(e) => setPasscodeInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleVerifyPasscode()}
-                placeholder="Enter passcode (Default: admin123)"
+                placeholder="Enter passcode"
                 className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-sm focus:border-purple-500 focus:outline-none"
               />
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={handleVerifyPasscode}
+                  className="glow-btn flex-1 py-2 text-xs justify-center"
+                >
+                  Verify & Unlock
+                </button>
+                <button
+                  onClick={() => setShowAdminModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SESSION KEY SWITCHER MODAL */}
+      {showSessionModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="glass-panel p-6 max-w-md w-full space-y-4 border-indigo-500/40 relative animate-in fade-in zoom-in-95">
+            <button
+              onClick={() => setShowSessionModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <div className="p-2.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400">
+                <Key className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Session Key Persistence</h3>
+                <p className="text-xs text-slate-400">Load your workspace session on another device or browser</p>
+              </div>
             </div>
 
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => setShowAdminModal(false)}
-                className="w-1/2 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:bg-slate-800 text-xs font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleVerifyPasscode}
-                className="w-1/2 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30"
-              >
-                Authenticate Admin
-              </button>
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1">
+                <span className="text-slate-400 font-semibold block">Your Active Session Key:</span>
+                <code className="text-indigo-300 font-mono text-sm block font-bold">{userId}</code>
+              </div>
+
+              <div className="space-y-1 pt-1">
+                <label className="text-xs font-semibold text-slate-300 block">Switch / Load Session Key:</label>
+                <input
+                  type="text"
+                  value={sessionInput}
+                  onChange={(e) => setSessionInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLoadSession(sessionInput)}
+                  placeholder="Enter Session Key (e.g. user_abc123 or team_qa)"
+                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-sm focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => handleLoadSession(sessionInput)}
+                  disabled={!sessionInput.trim()}
+                  className="glow-btn flex-1 py-2 text-xs justify-center"
+                >
+                  Load Session & History
+                </button>
+                <button
+                  onClick={() => handleLoadSession('user_' + Math.random().toString(36).substring(2, 9))}
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                >
+                  New Key
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -800,7 +920,160 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* TAB 3: SELF-HEALING AUDIT LOGS */}
+      {/* TAB 3: EXECUTION & GENERATION ACTIVITY HISTORY */}
+      {activeTab === 'history' && (
+        <section className="glass-panel p-6 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <History className="w-6 h-6 text-blue-400" />
+                Execution & Test Generation Activity History
+              </h2>
+              <p className="text-sm text-slate-400">Complete audit trail of all generated BDD suites and Playwright execution runs</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fetchHistory}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition-all"
+              >
+                <Clock className="w-3.5 h-3.5 text-blue-400" /> Refresh Activity Log
+              </button>
+              <button
+                onClick={handleClearHistory}
+                className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Clear History
+              </button>
+            </div>
+          </div>
+
+          {historyData && historyData.runs && historyData.runs.length > 0 ? (
+            <div className="space-y-3">
+              {historyData.runs.map((run: any) => {
+                const isExpanded = expandedRunId === run.id;
+                return (
+                  <div key={run.id} className="rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all overflow-hidden">
+                    {/* SINGLE UNIFIED BAR FOR PROMPT EXECUTION */}
+                    <div className="p-4 flex flex-wrap items-center justify-between gap-4 bg-slate-900/60">
+                      <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+                        <span className={`badge ${run.status === 'PASSED' ? 'badge-passed' : 'badge-failed'}`}>
+                          {run.status === 'PASSED' ? '✅ PASSED' : '❌ FAILED'}
+                        </span>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <code className="text-xs font-mono text-indigo-400 font-bold">{run.id}</code>
+                            <span className="text-xs text-slate-400 font-medium">({run.target_url || 'https://example.com'})</span>
+                          </div>
+                          <p className="text-xs text-slate-300 font-mono line-clamp-1">
+                            Prompt: {run.requirement_prompt || run.test_suite?.user_story || 'Verified user story execution'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                        <span className="font-mono text-amber-400">
+                          {run.healed_steps_count || run.self_healing_events?.length || 0} Healed
+                        </span>
+                        <span className="font-mono text-slate-400">
+                          {run.duration_ms ? (run.duration_ms / 1000).toFixed(1) + 's' : '10s'}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`${API_BASE}/test-runs/${run.id}/report`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-1 transition-all"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Download PDF Report
+                          </a>
+
+                          <button
+                            onClick={() => setExpandedRunId(isExpanded ? null : run.id)}
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 transition-all"
+                          >
+                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            {isExpanded ? 'Hide Report' : 'View Report'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* EXPANDABLE REPORT DETAILS INSIDE THE BAR */}
+                    {isExpanded && (
+                      <div className="p-5 border-t border-slate-800 bg-slate-950/60 space-y-4 animate-in fade-in">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs p-3 rounded-lg bg-slate-900 border border-slate-800/80">
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase block font-semibold">Browser Engine</span>
+                            <span className="text-slate-200 font-mono">{run.engine || 'chromium'} ({run.device || 'Desktop'})</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase block font-semibold">Execution Mode</span>
+                            <span className="text-slate-200 font-mono">{run.execution_mode || 'Headed (Live Window)'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase block font-semibold">Steps Ratio</span>
+                            <span className="text-slate-200 font-mono">{run.steps_passed || run.step_logs?.length || 0} Passed / {run.healed_steps_count || 0} Healed</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase block font-semibold">Timestamp</span>
+                            <span className="text-slate-200 font-mono">{run.created_at || 'Just now'}</span>
+                          </div>
+                        </div>
+
+                        {/* STEP LOGS TABLE INSIDE */}
+                        {run.step_logs && run.step_logs.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-xs font-semibold text-slate-300">Step Execution Logs:</span>
+                            <div className="rounded-lg border border-slate-800 overflow-hidden">
+                              <table className="w-full text-left text-xs">
+                                <thead className="bg-slate-900 text-slate-400 uppercase text-[10px]">
+                                  <tr>
+                                    <th className="p-2.5">Step</th>
+                                    <th className="p-2.5">Action</th>
+                                    <th className="p-2.5">Target</th>
+                                    <th className="p-2.5">Selector</th>
+                                    <th className="p-2.5">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/60 bg-slate-950">
+                                  {run.step_logs.map((log: any, idx: number) => (
+                                    <tr key={idx}>
+                                      <td className="p-2.5 font-mono text-slate-400">#{log.step_number}</td>
+                                      <td className="p-2.5 font-semibold text-indigo-300">{log.action}</td>
+                                      <td className="p-2.5 text-slate-300">{log.target_description}</td>
+                                      <td className="p-2.5 font-mono text-slate-500">{log.selector_used || 'auto'}</td>
+                                      <td className="p-2.5">
+                                        <span className={`badge ${log.status === 'passed' ? 'badge-passed' : log.status === 'healed' ? 'badge-healed' : 'badge-failed'}`}>
+                                          {log.status?.toUpperCase()}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-12 text-center text-slate-500 space-y-3 bg-slate-950/40 rounded-xl border border-slate-800">
+              <Clock className="w-10 h-10 mx-auto text-blue-400" />
+              <h3 className="text-base font-semibold text-white">No Test Execution History Found</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Generate and execute test scenarios from the Requirements Analyzer tab to create activity history records.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* TAB 4: SELF-HEALING AUDIT LOGS */}
       {activeTab === 'self-healing' && (
         <section className="glass-panel p-6 space-y-4">
           <div className="flex items-center justify-between">
@@ -1023,6 +1296,14 @@ export default function Dashboard() {
           )}
         </section>
       )}
+
+      <footer className="pt-8 pb-4 text-center text-xs text-slate-500 border-t border-slate-900/60 mt-12 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Cpu className="w-4 h-4 text-indigo-400" />
+          <span className="font-semibold text-slate-400">AutoHealQA v1.0</span>
+        </div>
+        <p>© 2026 AutoHealQA • Built with ❤️ by <span className="text-indigo-400 font-semibold">sid.dev</span>. All Rights Reserved.</p>
+      </footer>
     </main>
   );
 }
