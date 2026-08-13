@@ -26,7 +26,9 @@ async def execute_tests(
 
         run_result: TestRunResult = await executor.execute_test_suite(
             test_suite=payload.test_suite,
-            base_url_override=payload.target_url_override
+            base_url_override=payload.target_url_override,
+            browser_type=payload.browser_type,
+            device_preset=payload.device_preset
         )
 
         # Save run result in database

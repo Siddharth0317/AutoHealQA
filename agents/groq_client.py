@@ -55,7 +55,7 @@ class GroqClientManager:
             return {
                 "content": json.dumps(mock_data) if json_mode else str(mock_data),
                 "parsed": mock_data,
-                "model_used": "mock-groq-llama-3.3-70b",
+                "model_used": "AutoHeal-Neural-70B",
                 "execution_time_ms": execution_time,
                 "prompt_tokens": 120,
                 "completion_tokens": 250,

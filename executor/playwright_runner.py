@@ -70,11 +70,13 @@ class PlaywrightTestExecutor:
         self,
         test_suite: TestSuiteResponse,
         run_id: Optional[str] = None,
-        base_url_override: Optional[str] = None
+        base_url_override: Optional[str] = None,
+        browser_type: str = "chromium",
+        device_preset: str = "Desktop"
     ) -> TestRunResult:
         """
-        Executes all scenarios and test steps in a test suite, generating logs, screenshots,
-        and auto-healing broken selectors on locator failures.
+        Executes all scenarios and test steps in a test suite across Chromium, Firefox, WebKit,
+        or Mobile device viewports, generating logs, screenshots, and auto-healing broken selectors.
         """
         run_id = run_id or f"run-{uuid.uuid4().hex[:8]}"
         run_dir = os.path.join(ARTIFACTS_DIR, run_id)
@@ -94,17 +96,30 @@ class PlaywrightTestExecutor:
 
         target_base_url = base_url_override or test_suite.target_url or "https://example.com"
 
-        logger.info(f"Starting test execution [Run ID: {run_id}] against {target_base_url}")
+        logger.info(f"Starting test execution [Run ID: {run_id}] Engine: '{browser_type}', Device: '{device_preset}' against {target_base_url}")
+
+        viewport = {"width": 1280, "height": 720}
+        user_agent = None
+
+        if device_preset == "iPhone 14":
+            viewport = {"width": 390, "height": 844}
+            user_agent = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+        elif device_preset == "Pixel 7":
+            viewport = {"width": 412, "height": 915}
+            user_agent = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(
+            browser_engine = getattr(p, browser_type, p.chromium)
+            browser = await browser_engine.launch(
                 headless=self.headless,
-                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"] if browser_type == "chromium" else []
             )
             
             trace_path = os.path.join(run_dir, "trace.zip")
             context: BrowserContext = await browser.new_context(
-                viewport={"width": 1280, "height": 720},
+                viewport=viewport,
+                user_agent=user_agent,
+                is_mobile=(device_preset != "Desktop"),
                 record_video_dir=run_dir if not self.headless else None
             )
 
